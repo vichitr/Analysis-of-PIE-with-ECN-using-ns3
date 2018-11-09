@@ -16,6 +16,14 @@ http://ieeexplore.ieee.org/document/6602305/)
 - ns-3 code for PIE (Path: ns-3.xx/src/traffic-control/model/pie-queue-disc.{h, cc})
 
 ### Team Members
-- [Vichitr](https://github.com/vichitr)
-- [Shashank Kumar](https://github.com/skumrao)
-- [Rupesh Nitnaware](https://github.com/Iamrupesh)
+- [Vichitr](https://github.com/vichitr) - 16CO152
+- [Shashank Kumar](https://github.com/skumrao) - 16CO246
+- [Rupesh Nitnaware](https://github.com/Iamrupesh) - 16CO243
+
+### Instructors
+Mohit P. Tahiliani , Saumya Hegde, Aurea Fernandes
+
+### Mentors
+Sikha Bakshi
+
+Check out the [wiki](https://github.com/vichitr/Analysis-of-PIE-with-ECN-using-ns3/wiki)
