@@ -33,6 +33,7 @@ Sikha Bakshi
 ## Result & Conclusion
  
 ### Without ECN support
+```
 *** PIE stats from Node 2 queue ***
 
 Packets/Bytes received: 1023 / 973854
@@ -45,9 +46,9 @@ Packets/Bytes dropped before enqueue: 204 / 176938
 Packets/Bytes dropped after dequeue: 0 / 0
 Packets/Bytes sent: 819 / 796916
 Packets/Bytes marked: 0 / 0
-
+```
 ### With ECN support
-
+```
 *** PIE stats from Node 2 queue ***
 
 Packets/Bytes received: 910 / 847786
@@ -62,7 +63,8 @@ Packets/Bytes dropped after dequeue: 0 / 0
 Packets/Bytes sent: 823 / 790804
 Packets/Bytes marked: 319 / 301116
   Unforced mark: 319 / 301116
-  
+```
+
 <br>
 <br>
 Check out the [wiki](https://github.com/vichitr/Analysis-of-PIE-with-ECN-using-ns3/wiki)
