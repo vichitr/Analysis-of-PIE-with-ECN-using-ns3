@@ -47,12 +47,6 @@ TypeId PieQueueDisc::GetTypeId (void)
     .SetParent<QueueDisc> ()
     .SetGroupName ("TrafficControl")
     .AddConstructor<PieQueueDisc> ()
-    .AddAttribute ("Mode",
-                   "Determines unit for QueueLimit",
-                   EnumValue (QUEUE_DISC_MODE_PACKETS),
-                   MakeEnumAccessor (&PieQueueDisc::SetMode),
-                   MakeEnumChecker (QUEUE_DISC_MODE_BYTES, "QUEUE_DISC_MODE_BYTES",
-                                    QUEUE_DISC_MODE_PACKETS, "QUEUE_DISC_MODE_PACKETS"))
     .AddAttribute ("MeanPktSize",
                    "Average of packet size",
                    UintegerValue (1000),
@@ -78,11 +72,12 @@ TypeId PieQueueDisc::GetTypeId (void)
                    TimeValue (Seconds (0)),
                    MakeTimeAccessor (&PieQueueDisc::m_sUpdate),
                    MakeTimeChecker ())
-    .AddAttribute ("QueueLimit",
-                   "Queue limit in bytes/packets",
-                   UintegerValue (25),
-                   MakeUintegerAccessor (&PieQueueDisc::SetQueueLimit),
-                   MakeUintegerChecker<uint32_t> ())
+    .AddAttribute ("MaxSize",
+                   "The maximum number of packets accepted by this queue disc",
+                   QueueSizeValue (QueueSize ("25p")),
+                   MakeQueueSizeAccessor (&QueueDisc::SetMaxSize,
+                                          &QueueDisc::GetMaxSize),
+                   MakeQueueSizeChecker ())
     .AddAttribute ("DequeueThreshold",
                    "Minimum queue size in bytes before dequeue rate is measured",
                    UintegerValue (10000),
@@ -100,7 +95,7 @@ TypeId PieQueueDisc::GetTypeId (void)
                    MakeTimeChecker ())
     .AddAttribute ("UseEcn",
                    "True to use ECN (packets are marked instead of being dropped)",
-                   BooleanValue(true),
+                   BooleanValue(false),
                    MakeBooleanAccessor (&PieQueueDisc::m_useEcn),
                    MakeBooleanChecker())
      .AddAttribute ("UseHardDrop",
@@ -114,7 +109,7 @@ TypeId PieQueueDisc::GetTypeId (void)
 }
 
 PieQueueDisc::PieQueueDisc ()
-  : QueueDisc ()
+  : QueueDisc (QueueDiscSizePolicy::SINGLE_INTERNAL_QUEUE)
 {
   NS_LOG_FUNCTION (this);
   m_uv = CreateObject<UniformRandomVariable> ();
@@ -133,45 +128,6 @@ PieQueueDisc::DoDispose (void)
   m_uv = 0;
   Simulator::Remove (m_rtrsEvent);
   QueueDisc::DoDispose ();
-}
-
-void
-PieQueueDisc::SetMode (QueueDiscMode mode)
-{
-  NS_LOG_FUNCTION (this << mode);
-  m_mode = mode;
-}
-
-PieQueueDisc::QueueDiscMode
-PieQueueDisc::GetMode (void)
-{
-  NS_LOG_FUNCTION (this);
-  return m_mode;
-}
-
-void
-PieQueueDisc::SetQueueLimit (uint32_t lim)
-{
-  NS_LOG_FUNCTION (this << lim);
-  m_queueLimit = lim;
-}
-
-uint32_t
-PieQueueDisc::GetQueueSize (void)
-{
-  NS_LOG_FUNCTION (this);
-  if (GetMode () == QUEUE_DISC_MODE_BYTES)
-    {
-      return GetInternalQueue (0)->GetNBytes ();
-    }
-  else if (GetMode () == QUEUE_DISC_MODE_PACKETS)
-    {
-      return GetInternalQueue (0)->GetNPackets ();
-    }
-  else
-    {
-      NS_ABORT_MSG ("Unknown PIE mode.");
-    }
 }
 
 Time
@@ -194,30 +150,29 @@ PieQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
 {
   NS_LOG_FUNCTION (this << item);
 
-  uint32_t nQueued = GetQueueSize ();
+  QueueSize nQueued = GetCurrentSize ();
   uint32_t dropType = DTYPE_NONE;
-  /*
-  if ((GetMode () == QUEUE_DISC_MODE_PACKETS && nQueued >= m_queueLimit)
-      || (GetMode () == QUEUE_DISC_MODE_BYTES && nQueued + item->GetSize () > m_queueLimit))
+
+/*
+  if (nQueued + item > GetMaxSize ())
     {
       // Drops due to queue limit: reactive
       DropBeforeEnqueue (item, FORCED_DROP);
       return false;
     }
-  else if (DropEarly (item, nQueued))
+  else if (DropEarly (item, nQueued.GetValue ()))
     {
       // Early probability drop: proactive
       DropBeforeEnqueue (item, UNFORCED_DROP);
       return false;
     }
-    */
-    if ((GetMode () == QUEUE_DISC_MODE_PACKETS && nQueued >= m_queueLimit)
-      || (GetMode () == QUEUE_DISC_MODE_BYTES && nQueued + item->GetSize () > m_queueLimit))
-    {
+*/
+
+    if (nQueued + item > GetMaxSize ()){
       // Drops due to queue limit: reactive
       dropType = DTYPE_FORCED;
     }
-    else if (DropEarly (item, nQueued))
+    else if (DropEarly (item, nQueued.GetValue ()))
     {
       // Early probability drop: proactive
       dropType = DTYPE_UNFORCED;
@@ -227,22 +182,24 @@ PieQueueDisc::DoEnqueue (Ptr<QueueDiscItem> item)
     {
         if(!m_useEcn || !Mark(item, UNFORCED_MARK))
         {
-            NS_LOG_DEBUG("\t Dropping packet due to Prob Mark "<<m_avgDqRate);
+            //NS_LOG_DEBUG("\t Dropping packet due to Prob Mark "<<m_avgDqRate);
             DropBeforeEnqueue(item, UNFORCED_DROP);
             return false;
         }
-        NS_LOG_DEBUG("\t Marking due to Prob Mark " << m_avgDqRate);
+        //NS_LOG_DEBUG("\t Marking due to Prob Mark " << m_avgDqRate);
     }
     else if(dropType==DTYPE_FORCED)
     {
         if(m_useHardDrop || !m_useEcn || !Mark(item, FORCED_MARK))
         {
-            NS_LOG_DEBUG("\t Dropping due to Hard Mark " << m_avgDqRate);
+            //NS_LOG_DEBUG("\t Dropping due to Hard Mark " << m_avgDqRate);
             DropBeforeEnqueue(item, FORCED_DROP);
             return false;
         }
-        NS_LOG_DEBUG("\t Marking due to Hard Mark " << m_avgDqRate);
+        //NS_LOG_DEBUG("\t Marking due to Hard Mark " << m_avgDqRate);
     }
+
+
   // No drop
   bool retval = GetInternalQueue (0)->Enqueue (item);
 
@@ -260,7 +217,7 @@ PieQueueDisc::InitializeParams (void)
 {
   // Initially queue is empty so variables are initialize to zero except m_dqCount
   m_inMeasurement = false;
-  m_dqCount = -1;
+  m_dqCount = DQCOUNT_INVALID;
   m_dropProb = 0;
   m_avgDqRate = 0.0;
   m_dqStart = 0;
@@ -287,7 +244,7 @@ bool PieQueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
 
   uint32_t packetSize = item->GetSize ();
 
-  if (GetMode () == QUEUE_DISC_MODE_BYTES)
+  if (GetMaxSize ().GetUnit () == QueueSizeUnit::BYTES)
     {
       p = p * packetSize / m_meanPktSize;
     }
@@ -298,11 +255,11 @@ bool PieQueueDisc::DropEarly (Ptr<QueueDiscItem> item, uint32_t qSize)
     {
       return false;
     }
-  else if (GetMode () == QUEUE_DISC_MODE_BYTES && qSize <= 2 * m_meanPktSize)
+  else if (GetMaxSize ().GetUnit () == QueueSizeUnit::BYTES && qSize <= 2 * m_meanPktSize)
     {
       return false;
     }
-  else if (GetMode () == QUEUE_DISC_MODE_PACKETS && qSize <= 2)
+  else if (GetMaxSize ().GetUnit () == QueueSizeUnit::PACKETS && qSize <= 2)
     {
       return false;
     }
@@ -397,10 +354,10 @@ void PieQueueDisc::CalculateP ()
       m_burstAllowance -= m_tUpdate;
     }
 
-  uint32_t burstResetLimit = BURST_RESET_TIMEOUT / m_tUpdate.GetSeconds ();
+  uint32_t burstResetLimit = static_cast<uint32_t>(BURST_RESET_TIMEOUT / m_tUpdate.GetSeconds ());
   if ( (qDelay.GetSeconds () < 0.5 * m_qDelayRef.GetSeconds ()) && (m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb == 0) && !missingInitFlag )
     {
-      m_dqCount = -1;
+      m_dqCount = DQCOUNT_INVALID;
       m_avgDqRate = 0.0;
     }
   if ( (qDelay.GetSeconds () < 0.5 * m_qDelayRef.GetSeconds ()) && (m_qDelayOld.GetSeconds () < (0.5 * m_qDelayRef.GetSeconds ())) && (m_dropProb == 0) && (m_burstAllowance.GetSeconds () == 0))
@@ -494,24 +451,6 @@ PieQueueDisc::DoDequeue ()
   return item;
 }
 
-Ptr<const QueueDiscItem>
-PieQueueDisc::DoPeek () const
-{
-  NS_LOG_FUNCTION (this);
-  if (GetInternalQueue (0)->IsEmpty ())
-    {
-      NS_LOG_LOGIC ("Queue empty");
-      return 0;
-    }
-
-  Ptr<const QueueDiscItem> item = GetInternalQueue (0)->Peek ();
-
-  NS_LOG_LOGIC ("Number packets " << GetInternalQueue (0)->GetNPackets ());
-  NS_LOG_LOGIC ("Number bytes " << GetInternalQueue (0)->GetNBytes ());
-
-  return item;
-}
-
 bool
 PieQueueDisc::CheckConfig (void)
 {
@@ -530,36 +469,14 @@ PieQueueDisc::CheckConfig (void)
 
   if (GetNInternalQueues () == 0)
     {
-      // create a DropTail queue
-      Ptr<InternalQueue> queue = CreateObjectWithAttributes<DropTailQueue<QueueDiscItem> > ("Mode", EnumValue (m_mode));
-      if (m_mode == QUEUE_DISC_MODE_PACKETS)
-        {
-          queue->SetMaxPackets (m_queueLimit);
-        }
-      else
-        {
-          queue->SetMaxBytes (m_queueLimit);
-        }
-      AddInternalQueue (queue);
+      // add  a DropTail queue
+      AddInternalQueue (CreateObjectWithAttributes<DropTailQueue<QueueDiscItem> >
+                          ("MaxSize", QueueSizeValue (GetMaxSize ())));
     }
 
   if (GetNInternalQueues () != 1)
     {
       NS_LOG_ERROR ("PieQueueDisc needs 1 internal queue");
-      return false;
-    }
-
-  if ((GetInternalQueue (0)->GetMode () == QueueBase::QUEUE_MODE_PACKETS && m_mode == QUEUE_DISC_MODE_BYTES) ||
-      (GetInternalQueue (0)->GetMode () == QueueBase::QUEUE_MODE_BYTES && m_mode == QUEUE_DISC_MODE_PACKETS))
-    {
-      NS_LOG_ERROR ("The mode of the provided queue does not match the mode set on the PieQueueDisc");
-      return false;
-    }
-
-  if ((m_mode ==  QUEUE_DISC_MODE_PACKETS && GetInternalQueue (0)->GetMaxPackets () != m_queueLimit)
-      || (m_mode ==  QUEUE_DISC_MODE_BYTES && GetInternalQueue (0)->GetMaxBytes () != m_queueLimit))
-    {
-      NS_LOG_ERROR ("The size of the internal queue differs from the queue disc limit");
       return false;
     }
 

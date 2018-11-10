@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <map>
+#include <functional>
 #include "ns3/callback.h"
 #include "ns3/object.h"
 #include "ns3/ptr.h"
@@ -240,52 +241,26 @@ public:
    *
    * The index of the first transmission queue is zero.
    */
-  Ptr<NetDeviceQueue> GetTxQueue (uint8_t i) const;
+  Ptr<NetDeviceQueue> GetTxQueue (std::size_t i) const;
 
   /**
    * \brief Get the number of device transmission queues.
    * \return the number of device transmission queues.
    */
-  uint8_t GetNTxQueues (void) const;
+  std::size_t GetNTxQueues (void) const;
 
   /**
    * \brief Set the number of device transmission queues to create.
    * \param numTxQueues number of device transmission queues to create.
    *
-   * A multi-queue netdevice must call this method from within its
-   * NotifyNewAggregate method to set the number of device transmission queues
-   * to create.
+   * This method is called when the NTxQueues attribute is set to create
+   * the corresponding number of device transmission queues. It cannot be
+   * called again afterwards.
    */
-  void SetTxQueuesN (uint8_t numTxQueues);
-
-  /**
-   * \brief Create the device transmission queues.
-   *
-   * Called by the traffic control layer just after aggregating this netdevice
-   * queue interface to the netdevice.
-   */
-  void CreateTxQueues (void);
-
-  /**
-   * \brief Get the value of the late TX queues creation flag.
-   * \return the value of the late TX queues creation flag.
-   */
-  bool GetLateTxQueuesCreation (void) const;
-
-  /**
-   * \brief Set the late TX queues creation flag.
-   * \param value the boolean value
-   *
-   * By default, the late TX queues creation flag is false, which leads the
-   * traffic control layer to create the TX queues right after the netdevice
-   * queue interface is aggregated to the device. Netdevices that want to
-   * explicitly create TX queues at a later stage need to set this flag to
-   * true in the NotifyNewAggregate method.
-   */
-  void SetLateTxQueuesCreation (bool value);
+  void SetNTxQueues (std::size_t numTxQueues);
 
   /// Callback invoked to determine the tx queue selected for a given packet
-  typedef Callback< uint8_t, Ptr<QueueItem> > SelectQueueCallback;
+  typedef std::function<std::size_t (Ptr<QueueItem>)> SelectQueueCallback;
 
   /**
    * \brief Set the select queue callback.
@@ -324,8 +299,6 @@ protected:
 private:
   std::vector< Ptr<NetDeviceQueue> > m_txQueuesVector;   //!< Device transmission queues
   SelectQueueCallback m_selectQueueCallback;   //!< Select queue callback
-  uint8_t m_numTxQueues;   //!< Number of transmission queues to create
-  bool m_lateTxQueuesCreation;   //!< True if a device wants to create the TX queues by itself
   std::map<Ptr<QueueBase>, std::vector<CallbackBase> > m_traceMap;   //!< Map storing all the connected traces
 };
 
@@ -365,15 +338,12 @@ NetDeviceQueue::PacketEnqueued (Ptr<Queue<Item> > queue,
   // Inform BQL
   ndqi->GetTxQueue (txq)->NotifyQueuedBytes (item->GetSize ());
 
-  uint16_t mtu = ndqi->GetObject<NetDevice> ()->GetMtu ();
+  Ptr<Packet> p = Create<Packet> (ndqi->GetObject<NetDevice> ()->GetMtu ());
 
   // After enqueuing a packet, we need to check whether the queue is able to
   // store another packet. If not, we stop the queue
 
-  if ((queue->GetMode () == QueueBase::QUEUE_MODE_PACKETS &&
-       queue->GetNPackets () >= queue->GetMaxPackets ()) ||
-      (queue->GetMode () == QueueBase::QUEUE_MODE_BYTES &&
-       queue->GetNBytes () + mtu > queue->GetMaxBytes ()))
+  if (queue->GetCurrentSize () + p > queue->GetMaxSize ())
     {
       NS_LOG_DEBUG ("The device queue is being stopped (" << queue->GetNPackets ()
                     << " packets and " << queue->GetNBytes () << " bytes inside)");
@@ -394,16 +364,13 @@ NetDeviceQueue::PacketDequeued (Ptr<Queue<Item> > queue,
   // Inform BQL
   ndqi->GetTxQueue (txq)->NotifyTransmittedBytes (item->GetSize ());
 
-  uint16_t mtu = ndqi->GetObject<NetDevice> ()->GetMtu ();
+  Ptr<Packet> p = Create<Packet> (ndqi->GetObject<NetDevice> ()->GetMtu ());
 
   // After dequeuing a packet, if there is room for another packet we
   // call Wake () that ensures that the queue is not stopped and restarts
   // the queue disc if the queue was stopped
 
-  if ((queue->GetMode () == QueueBase::QUEUE_MODE_PACKETS &&
-       queue->GetNPackets () < queue->GetMaxPackets ()) ||
-      (queue->GetMode () == QueueBase::QUEUE_MODE_BYTES &&
-       queue->GetNBytes () + mtu <= queue->GetMaxBytes ()))
+  if (queue->GetCurrentSize () + p <= queue->GetMaxSize ())
     {
       ndqi->GetTxQueue (txq)->Wake ();
     }

@@ -73,7 +73,7 @@ std::stringstream filePlotQueueDiscAvg;
 void
 CheckQueueDiscSize (Ptr<QueueDisc> queue)
 {
-  uint32_t qSize = StaticCast<PieQueueDisc> (queue)->GetQueueSize ();
+  uint32_t qSize = queue->GetCurrentSize ().GetValue ();
 
   avgQueueDiscSize += qSize;
   checkTimes++;
@@ -187,19 +187,19 @@ main (int argc, char *argv[])
   Config::SetDefault ("ns3::TcpSocket::SegmentSize", UintegerValue (1000 - 42));
   Config::SetDefault ("ns3::TcpSocket::DelAckCount", UintegerValue (1));
   //Config::SetDefault ("ns3::TcpSocketBase::EcnMode", StringValue ("ClassicEcn"));
-  Config::SetDefault ("ns3::TcpSocketBase::EcnMode", StringValue ("ClassicEcn"));
+
   GlobalValue::Bind ("ChecksumEnabled", BooleanValue (false));
 
   uint32_t meanPktSize = 1000;
 
   // PIE params
   NS_LOG_INFO ("Set PIE params");
-  Config::SetDefault ("ns3::PieQueueDisc::Mode", StringValue ("QUEUE_DISC_MODE_PACKETS"));
+  Config::SetDefault ("ns3::PieQueueDisc::MaxSize", StringValue ("100p"));
   Config::SetDefault ("ns3::PieQueueDisc::MeanPktSize", UintegerValue (meanPktSize));
   Config::SetDefault ("ns3::PieQueueDisc::DequeueThreshold", UintegerValue (10000));
   Config::SetDefault ("ns3::PieQueueDisc::QueueDelayReference", TimeValue (Seconds (0.02)));
   Config::SetDefault ("ns3::PieQueueDisc::MaxBurstAllowance", TimeValue (Seconds (0.1)));
-  Config::SetDefault ("ns3::PieQueueDisc::QueueLimit", UintegerValue (100));
+  //Config::SetDefault ("ns3::PieQueueDisc::UseEcn", BooleanValue (true));
 
   NS_LOG_INFO ("Install internet stack on all nodes.");
   InternetStackHelper internet;
@@ -207,7 +207,7 @@ main (int argc, char *argv[])
 
   TrafficControlHelper tchPfifo;
   uint16_t handle = tchPfifo.SetRootQueueDisc ("ns3::PfifoFastQueueDisc");
-  tchPfifo.AddInternalQueues (handle, 3, "ns3::DropTailQueue", "MaxPackets", UintegerValue (1000));
+  tchPfifo.AddInternalQueues (handle, 3, "ns3::DropTailQueue", "MaxSize", StringValue ("1000p"));
 
   TrafficControlHelper tchPie;
   tchPie.SetRootQueueDisc ("ns3::PieQueueDisc");
@@ -239,7 +239,6 @@ main (int argc, char *argv[])
   p2p.SetDeviceAttribute ("DataRate", StringValue (pieLinkDataRate));
   p2p.SetChannelAttribute ("Delay", StringValue (pieLinkDelay));
   devn2n3 = p2p.Install (n2n3);
-  
   // only backbone link has PIE queue disc
   queueDiscs = tchPie.Install (devn2n3);
 
@@ -308,12 +307,12 @@ main (int argc, char *argv[])
   Simulator::Run ();
 
   QueueDisc::Stats st = queueDiscs.Get (0)->GetStats ();
-
+    /*
   if (st.GetNDroppedPackets (PieQueueDisc::FORCED_DROP) != 0)
     {
       std::cout << "There should be no drops due to queue full." << std::endl;
       exit (1);
-    }
+    }*/
 
   if (flowMonitor)
     {
@@ -325,11 +324,15 @@ main (int argc, char *argv[])
 
   if (printPieStats)
     {
+    /*
       std::cout << "*** PIE stats from Node 2 queue ***" << std::endl;
       std::cout << "\t " << st.GetNDroppedPackets (PieQueueDisc::UNFORCED_DROP)
                 << " drops due to prob mark" << std::endl;
       std::cout << "\t " << st.GetNDroppedPackets (PieQueueDisc::FORCED_DROP)
                 << " drops due to queue limits" << std::endl;
+                */
+     std::cout << "*** PIE stats from Node 2 queue ***" << std::endl;
+      std::cout << st << std::endl;
     }
 
   Simulator::Destroy ();

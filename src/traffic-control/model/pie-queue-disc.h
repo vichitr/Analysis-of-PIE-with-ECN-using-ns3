@@ -76,18 +76,9 @@ public:
     IN_BURST,
     IN_BURST_PROTECTING,
   };
-
-  /**
-   * \brief Enumeration of the modes supported in the class.
-   *
-   */
-  enum QueueDiscMode
-  {
-    QUEUE_DISC_MODE_PACKETS,     /**< Use number of packets for maximum queue disc size */
-    QUEUE_DISC_MODE_BYTES,       /**< Use number of bytes for maximum queue disc size */
-  };
   
-  /** drop types
+  
+    /** drop types
   *
   */
   enum 
@@ -97,34 +88,7 @@ public:
     DTYPE_UNFORCED, // unforced(random) drop
     
   };
-
-  /**
-   * \brief Set the operating mode of this queue disc.
-   *
-   * \param mode The operating mode of this queue disc.
-   */
-  void SetMode (QueueDiscMode mode);
-
-  /**
-   * \brief Get the operating mode of this queue disc.
-   *
-   * \returns The operating mode of this queue disc.
-   */
-  QueueDiscMode GetMode (void);
-
-  /**
-   * \brief Get the current value of the queue in bytes or packets.
-   *
-   * \returns The queue size in bytes or packets.
-   */
-  uint32_t GetQueueSize (void);
-
-  /**
-   * \brief Set the limit of the queue in bytes or packets.
-   *
-   * \param lim The limit in bytes or packets.
-   */
-  void SetQueueLimit (uint32_t lim);
+  
 
   /**
    * \brief Get queue delay.
@@ -146,10 +110,12 @@ public:
   // Reasons for dropping packets
   static constexpr const char* UNFORCED_DROP = "Unforced drop";  //!< Early probability drops: proactive
   static constexpr const char* FORCED_DROP = "Forced drop";      //!< Drops due to queue limit: reactive
-  
+
   // reasons for marking packets
   static constexpr const char* UNFORCED_MARK = "Unforced mark";  //!< Early probability mark
   static constexpr const char* FORCED_MARK = "Forced mark";      //!< forced mark
+
+
 
 protected:
   /**
@@ -160,7 +126,6 @@ protected:
 private:
   virtual bool DoEnqueue (Ptr<QueueDiscItem> item);
   virtual Ptr<QueueDiscItem> DoDequeue (void);
-  virtual Ptr<const QueueDiscItem> DoPeek (void) const;
   virtual bool CheckConfig (void);
 
   /**
@@ -183,9 +148,9 @@ private:
    */
   void CalculateP ();
 
+  static const uint64_t DQCOUNT_INVALID = std::numeric_limits<uint64_t>::max();  //!< Invalid dqCount value
+
   // ** Variables supplied by user
-  QueueDiscMode m_mode;                         //!< Mode (bytes or packets)
-  uint32_t m_queueLimit;                        //!< Queue limit in bytes / packets
   Time m_sUpdate;                               //!< Start time of the update timer
   Time m_tUpdate;                               //!< Time period after which CalculateP () is called
   Time m_qDelayRef;                             //!< Desired queue delay
@@ -205,11 +170,11 @@ private:
   bool m_inMeasurement;                         //!< Indicates whether we are in a measurement cycle
   double m_avgDqRate;                           //!< Time averaged dequeue rate
   double m_dqStart;                             //!< Start timestamp of current measurement cycle
-  uint32_t m_dqCount;                           //!< Number of bytes departed since current measurement cycle starts
+  uint64_t m_dqCount;                           //!< Number of bytes departed since current measurement cycle starts
   EventId m_rtrsEvent;                          //!< Event used to decide the decision of interval of drop probability calculation
   Ptr<UniformRandomVariable> m_uv;              //!< Rng stream
   
-  bool m_useEcn;        // true if ecn is used
+    bool m_useEcn;        // true if ecn is used
   bool m_useHardDrop;   // true if packets are always dropped above max threshold
   
 };

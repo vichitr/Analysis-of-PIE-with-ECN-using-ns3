@@ -26,4 +26,43 @@ Mohit P. Tahiliani , Saumya Hegde, Aurea Fernandes
 ### Mentors
 Sikha Bakshi
 
+## Work Done
+- Extended PIE to support ECN
+- Changed pie-example to test ECN
+
+## Result & Conclusion
+ 
+### Without ECN support
+*** PIE stats from Node 2 queue ***
+
+Packets/Bytes received: 1023 / 973854
+Packets/Bytes enqueued: 819 / 796916
+Packets/Bytes dequeued: 819 / 796916
+Packets/Bytes requeued: 0 / 0
+Packets/Bytes dropped: 204 / 176938
+Packets/Bytes dropped before enqueue: 204 / 176938
+  Unforced drop: 204 / 176938
+Packets/Bytes dropped after dequeue: 0 / 0
+Packets/Bytes sent: 819 / 796916
+Packets/Bytes marked: 0 / 0
+
+### With ECN support
+
+*** PIE stats from Node 2 queue ***
+
+Packets/Bytes received: 910 / 847786
+Packets/Bytes enqueued: 823 / 790804
+Packets/Bytes dequeued: 823 / 790804
+Packets/Bytes requeued: 0 / 0
+Packets/Bytes dropped: 87 / 56982
+Packets/Bytes dropped before enqueue: 87 / 56982
+  Forced drop: 86 / 56930
+  Unforced drop: 1 / 52
+Packets/Bytes dropped after dequeue: 0 / 0
+Packets/Bytes sent: 823 / 790804
+Packets/Bytes marked: 319 / 301116
+  Unforced mark: 319 / 301116
+  
+<br>
+<br>
 Check out the [wiki](https://github.com/vichitr/Analysis-of-PIE-with-ECN-using-ns3/wiki)
