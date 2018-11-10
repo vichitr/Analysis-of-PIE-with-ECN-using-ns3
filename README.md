@@ -27,8 +27,9 @@ Mohit P. Tahiliani , Saumya Hegde, Aurea Fernandes
 Sikha Bakshi
 
 ## Work Done
-- Extended PIE to support ECN
-- Changed pie-example to test ECN
+- Modified PIE to support ECN.
+- Modified pie-example to test ECN.
+- Documentation of steps involved in the project.
 
 ## Result & Conclusion
 Following is the output of pie-example without and with ECN support:-
