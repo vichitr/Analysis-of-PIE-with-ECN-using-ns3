@@ -68,4 +68,10 @@ Packets/Bytes marked: 319 / 301116
 This shows that with ECN, performance of PIE increases significantly. 
 <br><br>
     
+## Wiki
 Check out the [wiki](https://github.com/vichitr/Analysis-of-PIE-with-ECN-using-ns3/wiki)
+<br>
+- A brief introduction and key points on PIE and ECN.
+- We have explained all the modifications done in PIE code.
+- We have also given pseudo code for PIE and PIE with ECN.
+- Refer to [Contents](https://github.com/vichitr/Analysis-of-PIE-with-ECN-using-ns3/wiki#contents) on [Wiki Home page](https://github.com/vichitr/Analysis-of-PIE-with-ECN-using-ns3/wiki)
