@@ -28,7 +28,7 @@ Sikha Bakshi
 
 ## Work Done
 - Modified PIE to support ECN.
-- Modified pie-example to test ECN.
+- Modified PIE example to test ECN.
 - Documentation of steps involved in the project.
 
 ## Result & Conclusion
