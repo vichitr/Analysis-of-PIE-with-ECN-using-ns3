@@ -2,7 +2,7 @@
 
 - Buffers are present to ensure smooth communication between a fast network and a slow network. 
 
-- Act like shock absorbers and delay packets in the fast network so that the slow network can keep up with the packets. 
+- Acts like shock absorbers and delays packets in the fast network so that the slow network can keep up with the packets. 
 
 - Affects channel bandwidth.
 
